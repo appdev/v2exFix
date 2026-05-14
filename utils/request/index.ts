@@ -5,7 +5,6 @@ import { RESET } from 'jotai/utils'
 import { isInteger, isObjectLike } from 'lodash-es'
 import { isEqual } from 'lodash-es'
 import Toast from 'react-native-toast-message'
-import { isString } from 'twrnc/dist/esm/types'
 
 import { enabledMsgPushAtom } from '@/jotai/enabledMsgPushAtom'
 import { navNodesAtom } from '@/jotai/navNodesAtom'
@@ -51,7 +50,7 @@ request.interceptors.response.use(
         : new Error('Something went wrong')
     }
 
-    const $ = isString(data) ? load(data) : undefined
+    const $ = typeof data === 'string' ? load(data) : undefined
 
     // handle html error
     if ($) {

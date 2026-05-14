@@ -16,7 +16,7 @@ export interface CollapsibleTabView<T extends Route>
     sceneProps: SceneRendererProps & {
       route: T
       scrollViewProps: {
-        ref: RefObject<ScrollView>
+        ref: RefObject<ScrollView | null>
         contentContainerStyle: ScrollViewProps
       }
     }
@@ -32,7 +32,7 @@ export function CollapsibleTabView<T extends Route>({
 }: CollapsibleTabView<T>) {
   //   const [headerHeight, setHeaderHeight] = useState(0)
 
-  const [refs] = useState<Record<string, RefObject<ScrollView>>>({})
+  const [refs] = useState<Record<string, RefObject<ScrollView | null>>>({})
 
   return (
     <TabView

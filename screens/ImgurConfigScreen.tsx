@@ -30,7 +30,7 @@ function ImgurConfigScreen() {
   const [imgurConfig, setImgurConfig] = useAtom(imgurConfigAtom)
 
   const { control, handleSubmit } = useForm<z.infer<typeof ImgConfigScheme>>({
-    resolver: zodResolver(ImgConfigScheme),
+    resolver: zodResolver(ImgConfigScheme) as any,
     defaultValues: {
       clientId: imgurConfig.clientId,
     },

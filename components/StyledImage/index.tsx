@@ -1,6 +1,5 @@
 import { ImageSource } from 'expo-image'
 import { isArray, isObject, isString } from 'lodash-es'
-import { memo } from 'react'
 
 import { isSvgURL, resolveURL } from '@/utils/url'
 

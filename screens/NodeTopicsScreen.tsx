@@ -1,4 +1,4 @@
-import { AntDesign } from '@expo/vector-icons'
+import { FontAwesome } from '@expo/vector-icons'
 import { RouteProp, useRoute } from '@react-navigation/native'
 import { darken, lighten } from 'color2k'
 import { produce } from 'immer'
@@ -341,7 +341,7 @@ function LikeNode({
 
       <IconButton
         size={16}
-        icon={<AntDesign name={liked ? 'star' : 'staro'} />}
+        icon={<FontAwesome name={liked ? 'star' : 'star-o'} />}
         color={'#e7e9ea'}
         activeColor="rgb(250,219,20)"
         active={liked}

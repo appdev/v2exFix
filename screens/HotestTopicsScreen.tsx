@@ -31,8 +31,6 @@ import { Topic, k } from '@/servicies'
 import tw from '@/utils/tw'
 import { useQueryData } from '@/utils/useQueryData'
 
-const TAB_BAR_HEIGHT = 40
-
 export default withQuerySuspense(HotestTopicsScreen, {
   LoadingComponent: () => (
     <View style={tw`flex-1`}>
@@ -92,7 +90,7 @@ function HotestTopicsScreen() {
             <View style={tw`flex-row items-center`}>
               {dayjs(date).isBefore('2018-08-06') ? (
                 <AntDesign
-                  name="caretleft"
+                  name="caret-left"
                   size={iconSize}
                   color={colors.foreground}
                   style={tw`opacity-50 p-2`}
@@ -105,7 +103,7 @@ function HotestTopicsScreen() {
                 >
                   <AntDesign
                     style={tw`p-2`}
-                    name="caretleft"
+                    name="caret-left"
                     size={iconSize}
                     color={colors.foreground}
                   />
@@ -127,7 +125,7 @@ function HotestTopicsScreen() {
               </TouchableOpacity>
               {dayjs(date).isAfter(dayjs().subtract(2, 'day')) ? (
                 <AntDesign
-                  name="caretright"
+                  name="caret-right"
                   size={iconSize}
                   color={colors.foreground}
                   style={tw`opacity-50 p-2 -mr-2`}
@@ -140,7 +138,7 @@ function HotestTopicsScreen() {
                 >
                   <AntDesign
                     style={tw`p-2 -mr-2`}
-                    name="caretright"
+                    name="caret-right"
                     size={iconSize}
                     color={colors.foreground}
                   />

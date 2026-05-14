@@ -99,7 +99,7 @@ function WriteTopicScreen() {
   const { control, handleSubmit, getValues, setValue, watch, reset } = useForm<
     z.infer<typeof WriteTopicArgs>
   >({
-    resolver: zodResolver(WriteTopicArgs),
+    resolver: zodResolver(WriteTopicArgs) as any,
     defaultValues: isEdit ? prevTopic : store.get(topicDraftAtom),
   })
 
@@ -125,7 +125,7 @@ function WriteTopicScreen() {
   const selectionRef = useRef<{
     start: number
     end: number
-  }>()
+  } | undefined>(undefined)
 
   const resetForm = () => {
     if (isEdit) {

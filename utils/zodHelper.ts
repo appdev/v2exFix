@@ -1,5 +1,3 @@
-import { isString } from 'twrnc/dist/esm/types'
-
 export const stripString = (value: unknown) => {
   if (typeof value === 'string') {
     value = value.trim()
@@ -10,5 +8,5 @@ export const stripString = (value: unknown) => {
 
 export const stripStringToNumber = (value: unknown) => {
   const str = stripString(value)
-  return isString(str) ? +str : str
+  return typeof str === 'string' ? +str : str
 }

@@ -236,7 +236,7 @@ function TopicDetailScreen() {
         />
       </View>
     ),
-    [topic.id, topic.once, params.hightlightReplyNo, orderBy]
+    [topic.id, topic.once, params.hightlightReplyNo, orderBy, repliesMode]
   )
 
   const colorScheme = useAtomValue(colorSchemeAtom)

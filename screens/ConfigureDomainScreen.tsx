@@ -40,7 +40,7 @@ function ConfigureDomainScreen() {
   const { control, handleSubmit, setValue } = useForm<
     z.infer<typeof configureDomainScheme>
   >({
-    resolver: zodResolver(configureDomainScheme),
+    resolver: zodResolver(configureDomainScheme) as any,
     defaultValues: {
       baseURL,
     },

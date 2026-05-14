@@ -3,6 +3,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import { useForm } from 'react-hook-form'
 import { View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { z } from 'zod'
 
 import FormControl from '@/components/FormControl'
 import NavBar from '@/components/NavBar'
@@ -22,8 +23,10 @@ export default withQuerySuspense(SearchOptionsScreen)
 function SearchOptionsScreen() {
   const [sov2exArgs, setSov2exArgsm] = useAtom(sov2exArgsAtom)
 
-  const { control, reset, handleSubmit, watch } = useForm({
-    resolver: zodResolver(Sov2exArgs),
+  const { control, reset, handleSubmit, watch } = useForm<
+    z.infer<typeof Sov2exArgs>
+  >({
+    resolver: zodResolver(Sov2exArgs) as any,
     defaultValues: sov2exArgs,
   })
 
