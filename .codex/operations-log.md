@@ -224,3 +224,22 @@
   - `node -e "const app=require('./app.json').expo; ..."`：通过，输出版本为 `1.9.0`、buildNumber 为 `1.9.0.1`、runtimeVersion 为 `1.9.0`。
   - `npx expo config --type public --json | node -e ...`：通过，Expo 解析后的配置同样为 `1.9.0` / `1.9.0.1` / `1.9.0`；npm 输出现有 `auto-install-peers` 配置警告，不影响结果。
   - `git diff --check -- app.json .codex/operations-log.md`：通过。
+
+## 2026-05-16 - Android 版本号和 JNI ABI 过滤
+
+- 执行者：Codex
+- 任务分级：L2。原因：修改 Android 发布版本号和原生 ABI 构建/打包配置，影响 APK 版本元数据和 JNI so 打包范围。
+- 关键上下文：
+  - `expo.version` 已为 `1.9.0`，但 `android.versionCode` 未配置；生成工程 `android/app/build.gradle` 仍是 `versionCode 1`。
+  - `expo-build-properties` 支持通过 `android.buildArchs` 写入 `reactNativeArchitectures`，可限制构建 ABI。
+  - 生成工程已有 `reactNativeArchitectures=armeabi-v7a,arm64-v8a`，但 `android.packagingOptions.excludes` 只排除了 `lib/x86/**`。
+- 实现：
+  - 在 `app.json` 增加 `android.versionCode: 1090001`，对应 `1.9.0.1`。
+  - 在 `expo-build-properties.android` 增加 `buildArchs: ["armeabi-v7a", "arm64-v8a"]`。
+  - 将 JNI 排除规则扩展为 `lib/x86/**` 和 `lib/x86_64/**`，只保留 ARM ABI。
+- 验证：
+  - `CI=1 npx expo prebuild --platform android --clean --no-install`：通过，生成工程同步为 `versionCode 1090001`、`versionName "1.9.0"`、`reactNativeArchitectures=armeabi-v7a,arm64-v8a`、`android.packagingOptions.excludes=lib/x86/**,lib/x86_64/**`。
+  - prebuild 自动改动了 `package.json` 的 `android`/`ios` scripts，已撤回该无关改动。
+  - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleRelease --no-daemon --stacktrace`：通过，生成 `android/app/build/outputs/apk/release/app-release.apk`。
+  - `aapt dump badging android/app/build/outputs/apk/release/app-release.apk`：确认 APK 为 `versionCode='1090001'`、`versionName='1.9.0'`。
+  - `unzip -l android/app/build/outputs/apk/release/app-release.apk | ...`：确认 APK JNI ABI 仅包含 `arm64-v8a`、`armeabi-v7a`；未发现 `lib/x86/` 或 `lib/x86_64/`。
