@@ -169,8 +169,9 @@
   - `app.json` 的 Expo 版本号为 release APK 命名来源。
 - 实现：
   - 新增 `.github/workflows/android-release.yml`。
-  - workflow 在 `main` 分支 push 和手动触发时运行。
-  - CI 安装 Node、Java 21、Android SDK 36、Build Tools 36、NDK 27.1 和 CMake。
+  - workflow 初始设计在 `main` 分支 push 和手动触发时运行；后续按用户要求调整为仅支持手动触发，避免每次 push 自动发布 APK。
+  - CI 使用 `android-actions/setup-android@v4` 安装 Android SDK 36、Build Tools 36、NDK 27.1 和 CMake，避免 GitHub runner 上 `sdkmanager` 不在 PATH 导致发布失败。
+  - CI 在生成 Android 工程后使用 `gradle/actions/setup-gradle@v4` 配置 Gradle 构建环境。
   - 安装依赖时显式使用 `--production=false`，避免 Yarn v1 因 production 环境跳过构建所需 devDependencies。
   - 使用 `npx expo prebuild --platform android --clean` 生成 Android 工程，再以 `NODE_ENV=production` 执行 `./gradlew assembleRelease`。
   - 使用最近 10 条提交生成 `release-notes.md`，并通过 GitHub CLI 创建或更新 `android-<short-sha>` Release。

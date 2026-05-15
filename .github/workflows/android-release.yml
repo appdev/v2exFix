@@ -1,9 +1,6 @@
 name: Android Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -42,15 +39,17 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "ndk;27.1.12297006" \
-            "cmake;3.22.1"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+          packages: >-
+            tools
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+            ndk;27.1.12297006
+            cmake;3.22.1
 
       - name: Install JavaScript dependencies
         shell: bash
@@ -64,6 +63,9 @@ jobs:
         run: |
           npx expo prebuild --platform android --clean
           chmod +x android/gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build release APK
         shell: bash
