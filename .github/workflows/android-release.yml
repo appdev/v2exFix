@@ -64,6 +64,39 @@ jobs:
           npx expo prebuild --platform android --clean
           chmod +x android/gradlew
 
+      - name: Tune Gradle memory for CI
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const file = 'android/gradle.properties';
+          const properties = new Map([
+            [
+              'org.gradle.jvmargs',
+              '-Xmx3072m -XX:MaxMetaspaceSize=3072m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8',
+            ],
+            ['org.gradle.parallel', 'false'],
+            ['org.gradle.workers.max', '1'],
+            ['kotlin.compiler.execution.strategy', 'in-process'],
+            ['kotlin.incremental', 'false'],
+            ['ksp.incremental', 'false'],
+          ]);
+
+          const lines = fs
+            .readFileSync(file, 'utf8')
+            .split(/\r?\n/)
+            .filter((line) => !properties.has(line.split('=')[0]));
+
+          for (const [key, value] of properties) {
+            lines.push(`${key}=${value}`);
+          }
+
+          fs.writeFileSync(file, `${lines.join('\n')}\n`);
+          NODE
+
+          grep -E '^(org.gradle.jvmargs|org.gradle.parallel|org.gradle.workers.max|kotlin.compiler.execution.strategy|kotlin.incremental|ksp.incremental)=' android/gradle.properties
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -73,7 +106,7 @@ jobs:
           NODE_ENV: production
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace --max-workers=1
 
       - name: Prepare release artifact and notes
         id: release_info

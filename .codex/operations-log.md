@@ -191,3 +191,36 @@
   - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleRelease --no-daemon --stacktrace`：通过。
   - `adb -s 44dfe0af install -r android/app/build/outputs/apk/release/app-release.apk`：安装成功。
   - `adb -s 44dfe0af shell am start -n com.liaoliao666.v2ex/.MainActivity`：已启动。
+
+## 2026-05-16 - Android Release CI Metaspace 修复
+
+- 执行者：Codex
+- 任务分级：L2。原因：修复 GitHub Actions release 构建失败，改动范围限定在 CI 构建配置和留痕文档。
+- 用户反馈：
+  - GitHub Actions release 构建在 `:expo-updates:kspReleaseKotlin` 失败，核心异常为 `java.lang.OutOfMemoryError: Metaspace`。
+  - `React Compiler enabled` 为 Expo 构建日志提示，不是失败根因。
+- 实现：
+  - 在 `npx expo prebuild --platform android --clean` 后新增 `Tune Gradle memory for CI` 步骤。
+  - 显式覆盖生成出的 `android/gradle.properties`：`MaxMetaspaceSize=3072m`、`org.gradle.workers.max=1`、`org.gradle.parallel=false`。
+  - 将 Kotlin 编译策略设为 `in-process`，并关闭 Kotlin/KSP incremental，减少 clean CI release 构建中的额外 worker 和 classloader 压力。
+  - `assembleRelease` 增加 `--max-workers=1`，与 Gradle properties 保持一致。
+- 验证：
+  - `npx prettier --check .github/workflows/android-release.yml`：通过。
+  - `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/android-release.yml")'`：通过。
+  - `git diff --check -- .github/workflows/android-release.yml .codex/operations-log.md`：通过。
+
+## 2026-05-16 - App 版本升级到 1.9.0
+
+- 执行者：Codex
+- 任务分级：L2。原因：修改 Expo 发布配置，影响 App 展示版本、iOS buildNumber 和 OTA runtime 匹配。
+- 关键上下文：
+  - `app.json` 当前 `expo.version` 为 `1.8.8`，`ios.buildNumber` 为 `1.8.8.1`，`runtimeVersion` 为 `1.8.7`。
+  - 历史版本提交会同步 `expo.version` 与 `ios.buildNumber`；本次同时把 `runtimeVersion` 对齐到 `1.9.0`，避免新大版本继续使用旧 runtime。
+- 实现：
+  - `expo.version` 更新为 `1.9.0`。
+  - `ios.buildNumber` 更新为 `1.9.0.1`。
+  - `runtimeVersion` 更新为 `1.9.0`。
+- 验证：
+  - `node -e "const app=require('./app.json').expo; ..."`：通过，输出版本为 `1.9.0`、buildNumber 为 `1.9.0.1`、runtimeVersion 为 `1.9.0`。
+  - `npx expo config --type public --json | node -e ...`：通过，Expo 解析后的配置同样为 `1.9.0` / `1.9.0.1` / `1.9.0`；npm 输出现有 `auto-install-peers` 配置警告，不影响结果。
+  - `git diff --check -- app.json .codex/operations-log.md`：通过。
