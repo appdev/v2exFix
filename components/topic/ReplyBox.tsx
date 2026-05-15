@@ -184,6 +184,7 @@ const ReplyBox = ({
         0
       )
     : 0
+  const keyboardGap = keyboardMetrics ? safeAreaInsets.bottom : 0
   const bottomPadding = keyboardMetrics ? 8 : Math.max(safeAreaInsets.bottom, 8)
 
   return (
@@ -195,7 +196,7 @@ const ReplyBox = ({
 
       <View
         style={tw.style(`absolute inset-x-0 z-30`, {
-          bottom: keyboardOffset,
+          bottom: keyboardOffset + keyboardGap,
         })}
       >
         <View
