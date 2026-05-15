@@ -16,6 +16,10 @@ import { AsyncStoragePersist } from './components/AsyncStoragePersist'
 import StyledImageViewer from './components/StyledImageViewer'
 import StyledToast from './components/StyledToast'
 import { baseUrlAtom } from './jotai/baseUrlAtom'
+import {
+  blockedNodeNamesAtom,
+  topicTitleBlockKeywordsAtom,
+} from './jotai/blockKeywordsAtom'
 import { deviceTypeAtom } from './jotai/deviceTypeAtom'
 import { enabledAutoCheckinAtom } from './jotai/enabledAutoCheckinAtom'
 import { enabledMsgPushAtom } from './jotai/enabledMsgPushAtom'
@@ -90,6 +94,8 @@ function AppInitializer({ children }: { children: ReactNode }) {
       themeNameAtom,
       enabledWebviewAtom,
       searchHistoryAtom,
+      topicTitleBlockKeywordsAtom,
+      blockedNodeNamesAtom,
     ])
   )
 

@@ -1,0 +1,45 @@
+{
+  "date": "2026-05-16",
+  "executor": "Codex",
+  "summary": "Architecture context scan for local topic title keyword and node blocking.",
+  "findings": [
+    {
+      "area": "Topic model",
+      "evidence": "servicies/types.ts defines Topic with id, title, member, node and reply_count. Topic.node?.name is available for node matching."
+    },
+    {
+      "area": "All node data",
+      "evidence": "servicies/node.ts defines k.node.all, fetching /api/nodes/all.json as Promise<Node[]>."
+    },
+    {
+      "area": "Node search",
+      "evidence": "screens/SearchNodeScreen.tsx filters k.node.all by title, title_alternative, name and aliases. It is currently single-select through onPressNodeItem."
+    },
+    {
+      "area": "Existing node picker caller",
+      "evidence": "screens/SortTabsScreen.tsx navigates to SearchNode and adds a selected node as a home tab."
+    },
+    {
+      "area": "Settings",
+      "evidence": "screens/SettingScreen.tsx uses ListItem entries for settings navigation and already places Theme Settings and Black List near the desired location."
+    },
+    {
+      "area": "Topic lists",
+      "evidence": "HomeScreen, NodeTopicsScreen, MyTopicsScreen, MyFollowingScreen, MemberDetailScreen, HotestTopicsScreen and SearchScreen render Topic-like lists."
+    },
+    {
+      "area": "Persistence",
+      "evidence": "jotai/utils/atomWithAsyncStorage.ts wraps AsyncStorage with jotai atomWithStorage and is used by existing preference atoms."
+    },
+    {
+      "area": "Bottom sheet dependencies",
+      "evidence": "package.json has no dedicated bottom sheet library. A small local React Native Modal-based sheet avoids adding a dependency."
+    }
+  ],
+  "risks": [
+    "Route params already carry callbacks in SearchNode; keep compatibility and avoid widening non-serializable usage beyond existing pattern.",
+    "FlatList ListHeaderComponent varies by page; blocked notice must compose with existing headers.",
+    "Search results are Topic-like rather than direct Topic instances and need mapping before filtering.",
+    "Browser Web support depends on the existing local Expo Web dev setup."
+  ]
+}

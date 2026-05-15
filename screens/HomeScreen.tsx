@@ -44,6 +44,7 @@ import StyledBlurView from '@/components/StyledBlurView'
 import StyledImage from '@/components/StyledImage'
 import StyledRefreshControl from '@/components/StyledRefreshControl'
 import TopicPlaceholder from '@/components/placeholder/TopicPlaceholder'
+import BlockedTopicsNotice from '@/components/topic/BlockedTopicsNotice'
 import TopicItem from '@/components/topic/TopicItem'
 import XnaItem from '@/components/topic/XnaItem'
 import {
@@ -64,6 +65,7 @@ import { isTablet, useTablet } from '@/utils/tablet'
 import tw from '@/utils/tw'
 import usePreviousDistinct from '@/utils/usePreviousDistinct'
 import { useRefreshByUser } from '@/utils/useRefreshByUser'
+import { useTopicBlockRules } from '@/utils/useTopicBlockRules'
 
 const TAB_BAR_HEIGHT = 40
 const errorResetMap: Record<string, () => void> = {}
@@ -215,6 +217,7 @@ function HomeScreen() {
                   ref={ref}
                   headerHeight={headerHeight}
                   nodeName={route.key}
+                  sourceTitle={route.title}
                 />
               </TabPlaceholder>
             )
@@ -242,6 +245,7 @@ function HomeScreen() {
                 ref={ref}
                 headerHeight={headerHeight}
                 tab={route.key}
+                sourceTitle={route.title}
               />
             </TabPlaceholder>
           )
@@ -346,6 +350,7 @@ const RecentTopics = memo(
       () => uniqBy(data.pages.map(page => page.list).flat(), 'id'),
       [data.pages]
     )
+    const { visibleTopics, blockedTopics } = useTopicBlockRules(flatedData)
 
     return (
       <RefetchingIndicator
@@ -354,7 +359,7 @@ const RecentTopics = memo(
       >
         <FlatList
           ref={ref}
-          data={flatedData}
+          data={visibleTopics}
           automaticallyAdjustsScrollIndicatorInsets={false}
           refreshControl={
             <StyledRefreshControl
@@ -367,6 +372,12 @@ const RecentTopics = memo(
             paddingTop: headerHeight,
           }}
           ItemSeparatorComponent={LineSeparator}
+          ListHeaderComponent={
+            <BlockedTopicsNotice
+              sourceTitle="最近"
+              blockedTopics={blockedTopics}
+            />
+          }
           renderItem={renderItem}
           onEndReached={() => {
             if (hasNextPage) {
@@ -392,9 +403,10 @@ const TabTopics = memo(
     FlatList,
     {
       tab: string
+      sourceTitle: string
       headerHeight: number
     }
-  >(({ tab, headerHeight }, ref) => {
+  >(({ tab, sourceTitle, headerHeight }, ref) => {
     const { data, refetch, isFetching } = k.topic.tab.useSuspenseQuery({
       variables: { tab },
       refetchOnWindowFocus: () => isRefetchOnWindowFocus(tab),
@@ -406,6 +418,7 @@ const TabTopics = memo(
       ({ item }) => <TopicItem key={item.id} topic={item} />,
       []
     )
+    const { visibleTopics, blockedTopics } = useTopicBlockRules(data)
 
     return (
       <RefetchingIndicator
@@ -414,7 +427,7 @@ const TabTopics = memo(
       >
         <FlatList
           ref={ref}
-          data={data}
+          data={visibleTopics}
           automaticallyAdjustsScrollIndicatorInsets={false}
           refreshControl={
             <StyledRefreshControl
@@ -427,6 +440,12 @@ const TabTopics = memo(
             paddingTop: headerHeight,
           }}
           ItemSeparatorComponent={LineSeparator}
+          ListHeaderComponent={
+            <BlockedTopicsNotice
+              sourceTitle={sourceTitle}
+              blockedTopics={blockedTopics}
+            />
+          }
           ListFooterComponent={<SafeAreaView edges={['bottom']} />}
           renderItem={renderItem}
           ListEmptyComponent={<Empty description="目前还没有主题" />}
@@ -441,9 +460,10 @@ const NodeTopics = memo(
     FlatList,
     {
       nodeName: string
+      sourceTitle: string
       headerHeight: number
     }
-  >(({ nodeName, headerHeight }, ref) => {
+  >(({ nodeName, sourceTitle, headerHeight }, ref) => {
     const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isFetching } =
       k.node.topics.useSuspenseInfiniteQuery({
         variables: { name: nodeName },
@@ -466,6 +486,7 @@ const NodeTopics = memo(
       () => uniqBy(data.pages.map(page => page.list).flat(), 'id'),
       [data.pages]
     )
+    const { visibleTopics, blockedTopics } = useTopicBlockRules(flatedData)
 
     return (
       <RefetchingIndicator
@@ -474,7 +495,7 @@ const NodeTopics = memo(
       >
         <FlatList
           ref={ref}
-          data={flatedData}
+          data={visibleTopics}
           refreshControl={
             <StyledRefreshControl
               refreshing={isRefetchingByUser}
@@ -485,6 +506,12 @@ const NodeTopics = memo(
           contentContainerStyle={{
             paddingTop: headerHeight,
           }}
+          ListHeaderComponent={
+            <BlockedTopicsNotice
+              sourceTitle={sourceTitle}
+              blockedTopics={blockedTopics}
+            />
+          }
           ListEmptyComponent={<Empty description="无法访问该节点" />}
           ItemSeparatorComponent={LineSeparator}
           renderItem={renderItem}

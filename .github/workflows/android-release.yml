@@ -1,0 +1,127 @@
+name: Android Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build and publish Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.1.12297006" \
+            "cmake;3.22.1"
+
+      - name: Install JavaScript dependencies
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn install --frozen-lockfile --non-interactive --production=false
+
+      - name: Generate Android project
+        shell: bash
+        run: |
+          npx expo prebuild --platform android --clean
+          chmod +x android/gradlew
+
+      - name: Build release APK
+        shell: bash
+        env:
+          NODE_ENV: production
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare release artifact and notes
+        id: release_info
+        shell: bash
+        run: |
+          SHORT_SHA="$(git rev-parse --short=12 HEAD)"
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          APK_SOURCE="android/app/build/outputs/apk/release/app-release.apk"
+          APK_NAME="v2fun-android-${APP_VERSION}-${SHORT_SHA}.apk"
+          APK_PATH="release-artifacts/${APK_NAME}"
+
+          test -f "${APK_SOURCE}"
+          mkdir -p release-artifacts
+          cp "${APK_SOURCE}" "${APK_PATH}"
+
+          {
+            echo "## Android Release"
+            echo
+            echo "- Version: ${APP_VERSION}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Branch: ${GITHUB_REF_NAME}"
+            echo "- Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "## Recent commits"
+            git log -n 10 --pretty=format:'- `%h` %s (%an)'
+            echo
+          } > release-notes.md
+
+          echo "apk_path=${APK_PATH}" >> "${GITHUB_OUTPUT}"
+          echo "tag=android-${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "title=Android ${APP_VERSION} (${SHORT_SHA})" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_info.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release_info.outputs.title }}
+          APK_PATH: ${{ steps.release_info.outputs.apk_path }}
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" \
+              --title "${RELEASE_TITLE}" \
+              --notes-file release-notes.md \
+              --latest
+            gh release upload "${RELEASE_TAG}" "${APK_PATH}" --clobber
+          else
+            gh release create "${RELEASE_TAG}" "${APK_PATH}" \
+              --title "${RELEASE_TITLE}" \
+              --notes-file release-notes.md \
+              --target "${GITHUB_SHA}" \
+              --latest
+          fi

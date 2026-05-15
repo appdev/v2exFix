@@ -1,0 +1,32 @@
+{
+  "date": "2026-05-16",
+  "executor": "Codex",
+  "task": "Implement local topic and node blocking based on the existing product requirements.",
+  "level": "L3",
+  "score": {
+    "impact": 2,
+    "core_files": 2,
+    "change_type": 1,
+    "uncertainty": 1,
+    "rollback_cost": 1,
+    "total": 7
+  },
+  "acceptance": [
+    "Settings has a Topic Blocking entry.",
+    "Title keywords are manually entered and displayed as removable chips.",
+    "Blocked nodes are selected from the all-nodes data source, support multiple selection, and display as removable chips.",
+    "Applicable topic lists hide topics that match a keyword or blocked node.",
+    "A list-local notice shows the count of currently loaded blocked topics.",
+    "Clicking the notice opens a bottom sheet capped at 90% screen height.",
+    "The bottom sheet lists blocked topics with match reasons and allows entering topic detail.",
+    "Rules persist across app restarts.",
+    "The feature does not call V2EX ignore/unignore and does not change blackListAtom."
+  ],
+  "constraints": [
+    "Reuse k.node.all for node data.",
+    "Store blocked nodes by stable node.name.",
+    "Keep SearchNode single-select behavior compatible with existing callers.",
+    "Do not filter XNA, replies, notifications, member lists, or node lists.",
+    "Validate with TypeScript and browser smoke tests."
+  ]
+}

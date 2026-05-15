@@ -42,17 +42,19 @@ import StyledBlurView from '@/components/StyledBlurView'
 import StyledButton from '@/components/StyledButton'
 import StyledRefreshControl from '@/components/StyledRefreshControl'
 import TopicPlaceholder from '@/components/placeholder/TopicPlaceholder'
+import BlockedTopicsNotice from '@/components/topic/BlockedTopicsNotice'
 import { searchHistoryAtom } from '@/jotai/searchHistoryAtom'
 import { sov2exArgsAtom } from '@/jotai/sov2exArgsAtom'
 import { colorSchemeAtom } from '@/jotai/themeAtom'
 import { uiAtom } from '@/jotai/uiAtom'
 import { navigation } from '@/navigation/navigationRef'
-import { Member, Node, Sov2exResult, k } from '@/servicies'
+import { Node, Sov2exResult, Topic, k } from '@/servicies'
 import { RootStackParamList } from '@/types'
 import { confirm } from '@/utils/confirm'
 import tw from '@/utils/tw'
 import { useQueryData } from '@/utils/useQueryData'
 import { useRefreshByUser } from '@/utils/useRefreshByUser'
+import { useTopicBlockRules } from '@/utils/useTopicBlockRules'
 
 export default function SearchScreen() {
   const { params } = useRoute<RouteProp<RootStackParamList, 'Search'>>()
@@ -367,21 +369,7 @@ function SoV2exList({
   const { isRefetchingByUser, refetchByUser } = useRefreshByUser(refetch)
 
   const renderItem: ListRenderItem<Sov2exResult['hits'][number]> = useCallback(
-    ({ item }) => (
-      <HitItem
-        topic={{
-          node: nodeMap?.[item._source.node],
-          member: {
-            username: item._source.member,
-          },
-          id: item._source.id,
-          title: item._source.title,
-          reply_count: item._source.replies,
-          created: item._source.created.toString(),
-          content: item.highlight?.content?.[0],
-        }}
-      />
-    ),
+    ({ item }) => <HitItem topic={mapHitToTopic(item, nodeMap)} />,
     [nodeMap]
   )
 
@@ -389,31 +377,50 @@ function SoV2exList({
     () => uniqBy(data.pages.map(page => page.hits).flat(), '_id'),
     [data.pages]
   )
+  const topicData = useMemo(
+    () => flatedData.map(item => mapHitToTopic(item, nodeMap)),
+    [flatedData, nodeMap]
+  )
+  const { visibleTopics, blockedTopics } = useTopicBlockRules(topicData)
+  const visibleTopicIds = useMemo(
+    () => new Set(visibleTopics.map(topic => topic.id)),
+    [visibleTopics]
+  )
+  const visibleData = useMemo(
+    () => flatedData.filter(item => visibleTopicIds.has(item._source.id)),
+    [flatedData, visibleTopicIds]
+  )
 
   const { colors, fontSize } = useAtomValue(uiAtom)
 
   return (
     <FlatList
-      data={flatedData}
+      data={visibleData}
       onScrollBeginDrag={onScrollBeginDrag}
       ListHeaderComponent={
-        !isEmpty(flatedData) ? (
-          <View style={tw`px-4 py-2.5`}>
-            <Text style={tw`text-[${colors.foreground}] ${fontSize.medium}`}>
-              以下搜索结果来自于{' '}
-              <Text
-                style={tw`text-[${colors.primary}]`}
-                onPress={() => {
-                  navigation.navigate('Webview', {
-                    url: `https://www.sov2ex.com`,
-                  })
-                }}
-              >
-                SOV2EX
+        <>
+          {!isEmpty(flatedData) ? (
+            <View style={tw`px-4 py-2.5`}>
+              <Text style={tw`text-[${colors.foreground}] ${fontSize.medium}`}>
+                以下搜索结果来自于{' '}
+                <Text
+                  style={tw`text-[${colors.primary}]`}
+                  onPress={() => {
+                    navigation.navigate('Webview', {
+                      url: `https://www.sov2ex.com`,
+                    })
+                  }}
+                >
+                  SOV2EX
+                </Text>
               </Text>
-            </Text>
-          </View>
-        ) : null
+            </View>
+          ) : null}
+          <BlockedTopicsNotice
+            sourceTitle={`搜索：${query}`}
+            blockedTopics={blockedTopics}
+          />
+        </>
       }
       refreshControl={
         <StyledRefreshControl
@@ -445,117 +452,119 @@ function SoV2exList({
   )
 }
 
-const HitItem = memo(
-  ({
-    topic,
-  }: {
-    topic: {
-      node: Node
-      member: Member
-      id: number
-      title: string
-      reply_count: number
-      created: string
-      content: string
-    }
-  }) => {
-    const isReaded = useQueryData(
-      k.topic.detail.getKey({ id: topic.id }),
-      data => {
-        if (isUndefined(data)) return false
-        const replyCount = maxBy(data.pages, 'reply_count')?.reply_count || 0
-        return replyCount >= topic.reply_count
-      }
-    )
-    const { colors, fontSize } = useAtomValue(uiAtom)
+function mapHitToTopic(
+  item: Sov2exResult['hits'][number],
+  nodeMap?: Record<number, Node>
+): Topic {
+  return {
+    node: nodeMap?.[item._source.node],
+    member: {
+      username: item._source.member,
+    },
+    id: item._source.id,
+    title: item._source.title,
+    reply_count: item._source.replies,
+    created: item._source.created.toString(),
+    content: item.highlight?.content?.[0],
+  } as Topic
+}
 
-    return (
-      <DebouncedPressable
-        style={tw`px-4 py-3 flex-row bg-[${colors.base100}]`}
-        onPress={() => {
-          navigation.push('TopicDetail', topic)
-        }}
-      >
-        <View style={tw`flex-1`}>
-          <View style={tw`flex-row gap-2`}>
-            {!!topic.node?.title && (
-              <StyledButton
-                size="mini"
-                type="tag"
-                onPress={() => {
-                  navigation.push('NodeTopics', {
-                    name: topic.node?.name!,
-                  })
-                }}
-              >
-                {topic.node?.title}
-              </StyledButton>
-            )}
-            <Text
-              style={tw`text-[${colors.foreground}] ${fontSize.medium} font-semibold flex-shrink`}
-              numberOfLines={1}
+const HitItem = memo(({ topic }: { topic: Topic }) => {
+  const isReaded = useQueryData(
+    k.topic.detail.getKey({ id: topic.id }),
+    data => {
+      if (isUndefined(data)) return false
+      const replyCount = maxBy(data.pages, 'reply_count')?.reply_count || 0
+      return replyCount >= topic.reply_count
+    }
+  )
+  const { colors, fontSize } = useAtomValue(uiAtom)
+
+  return (
+    <DebouncedPressable
+      style={tw`px-4 py-3 flex-row bg-[${colors.base100}]`}
+      onPress={() => {
+        navigation.push('TopicDetail', topic)
+      }}
+    >
+      <View style={tw`flex-1`}>
+        <View style={tw`flex-row gap-2`}>
+          {!!topic.node?.title && (
+            <StyledButton
+              size="mini"
+              type="tag"
               onPress={() => {
-                navigation.push('MemberDetail', {
-                  username: topic.member?.username!,
+                navigation.push('NodeTopics', {
+                  name: topic.node?.name!,
                 })
               }}
             >
-              {topic.member?.username}
-            </Text>
-
-            <Separator>
-              {compact([
-                <Text
-                  key="created"
-                  style={tw`text-[${colors.default}] ${fontSize.medium}`}
-                >
-                  {dayjs(topic.created).fromNow()}
-                </Text>,
-                !!topic.reply_count && (
-                  <Text
-                    key="replies"
-                    style={tw`text-[${colors.default}] ${fontSize.medium}`}
-                  >
-                    {`${topic.reply_count} 回复`}
-                  </Text>
-                ),
-              ])}
-            </Separator>
-          </View>
-
+              {topic.node?.title}
+            </StyledButton>
+          )}
           <Text
-            style={tw.style(
-              `${fontSize.medium} font-medium pt-2`,
-              isReaded
-                ? `text-[${colors.default}]`
-                : `text-[${colors.foreground}]`
-            )}
+            style={tw`text-[${colors.foreground}] ${fontSize.medium} font-semibold flex-shrink`}
+            numberOfLines={1}
+            onPress={() => {
+              navigation.push('MemberDetail', {
+                username: topic.member?.username!,
+              })
+            }}
           >
-            {topic.title}
+            {topic.member?.username}
           </Text>
 
-          {!!topic.content && (
-            <View style={tw`pt-2`}>
-              <Html
-                source={{
-                  html: topic.content,
-                }}
-                baseStyle={tw.style(
-                  `${fontSize.medium}`,
-                  isReaded
-                    ? `text-[${colors.default}]`
-                    : `text-[${colors.foreground}]`
-                )}
-                defaultTextProps={{ selectable: false }}
-              />
-            </View>
-          )}
+          <Separator>
+            {compact([
+              <Text
+                key="created"
+                style={tw`text-[${colors.default}] ${fontSize.medium}`}
+              >
+                {dayjs(topic.created).fromNow()}
+              </Text>,
+              !!topic.reply_count && (
+                <Text
+                  key="replies"
+                  style={tw`text-[${colors.default}] ${fontSize.medium}`}
+                >
+                  {`${topic.reply_count} 回复`}
+                </Text>
+              ),
+            ])}
+          </Separator>
         </View>
-      </DebouncedPressable>
-    )
-  },
-  isEqual
-)
+
+        <Text
+          style={tw.style(
+            `${fontSize.medium} font-medium pt-2`,
+            isReaded
+              ? `text-[${colors.default}]`
+              : `text-[${colors.foreground}]`
+          )}
+        >
+          {topic.title}
+        </Text>
+
+        {!!topic.content && (
+          <View style={tw`pt-2`}>
+            <Html
+              source={{
+                html: topic.content,
+              }}
+              baseStyle={tw.style(
+                `${fontSize.medium}`,
+                isReaded
+                  ? `text-[${colors.default}]`
+                  : `text-[${colors.foreground}]`
+              )}
+              defaultTextProps={{ selectable: false }}
+            />
+          </View>
+        )}
+      </View>
+    </DebouncedPressable>
+  )
+}, isEqual)
 
 const getTopicLink = `(function() {
   try {

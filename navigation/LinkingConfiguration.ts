@@ -16,6 +16,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       TopicDetail: 'topic/:id',
       MemberDetail: 'member/:username',
       NodeTopics: 'node/:name',
+      TopicBlockSettings: 'settings/topic-blocking',
       NotFound: '*',
     },
   },

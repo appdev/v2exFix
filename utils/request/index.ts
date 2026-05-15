@@ -4,6 +4,7 @@ import dayjs from 'dayjs'
 import { RESET } from 'jotai/utils'
 import { isInteger, isObjectLike } from 'lodash-es'
 import { isEqual } from 'lodash-es'
+import { Platform } from 'react-native'
 import Toast from 'react-native-toast-message'
 
 import { enabledMsgPushAtom } from '@/jotai/enabledMsgPushAtom'
@@ -29,13 +30,13 @@ export class BizError extends Error {
 }
 
 export const request = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: getRequestBaseURL(),
 })
 
 request.interceptors.request.use(config => {
   return {
     ...config,
-    baseURL: getBaseURL(),
+    baseURL: getRequestBaseURL(),
   }
 })
 
@@ -155,4 +156,12 @@ function updateRecentTopics($: CheerioAPI) {
   if ($(`#my-recent-topics`).length) {
     store.set(recentTopicsAtom, parseRecentTopics($))
   }
+}
+
+function getRequestBaseURL() {
+  if (Platform.OS === 'web' && process.env.NODE_ENV !== 'production') {
+    return '/__v2ex_proxy'
+  }
+
+  return getBaseURL()
 }

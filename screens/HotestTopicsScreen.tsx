@@ -24,12 +24,14 @@ import { LineSeparator } from '@/components/Separator'
 import StyledBlurView from '@/components/StyledBlurView'
 import StyledButton from '@/components/StyledButton'
 import TopicPlaceholder from '@/components/placeholder/TopicPlaceholder'
+import BlockedTopicsNotice from '@/components/topic/BlockedTopicsNotice'
 import { colorSchemeAtom } from '@/jotai/themeAtom'
 import { uiAtom } from '@/jotai/uiAtom'
 import { navigation } from '@/navigation/navigationRef'
 import { Topic, k } from '@/servicies'
 import tw from '@/utils/tw'
 import { useQueryData } from '@/utils/useQueryData'
+import { useTopicBlockRules } from '@/utils/useTopicBlockRules'
 
 export default withQuerySuspense(HotestTopicsScreen, {
   LoadingComponent: () => (
@@ -193,6 +195,7 @@ function HotestTopics({
   const { data } = k.topic.hotest.useSuspenseQuery({
     variables: { date },
   })
+  const { visibleTopics, blockedTopics } = useTopicBlockRules(data)
 
   const renderItem: ListRenderItem<Topic> = useCallback(
     ({ item }) => <HotestItem key={item.id} topic={item} />,
@@ -201,11 +204,17 @@ function HotestTopics({
 
   return (
     <FlatList
-      data={data}
+      data={visibleTopics}
       contentContainerStyle={{
         paddingTop: headerHeight,
       }}
       ItemSeparatorComponent={LineSeparator}
+      ListHeaderComponent={
+        <BlockedTopicsNotice
+          sourceTitle={`历史最热 ${date}`}
+          blockedTopics={blockedTopics}
+        />
+      }
       ListFooterComponent={<SafeAreaView edges={['bottom']} />}
       renderItem={renderItem}
       ListEmptyComponent={<Empty description="目前还没有主题" />}
