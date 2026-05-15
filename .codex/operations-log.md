@@ -175,3 +175,19 @@
   - 安装依赖时显式使用 `--production=false`，避免 Yarn v1 因 production 环境跳过构建所需 devDependencies。
   - 使用 `npx expo prebuild --platform android --clean` 生成 Android 工程，再以 `NODE_ENV=production` 执行 `./gradlew assembleRelease`。
   - 使用最近 10 条提交生成 `release-notes.md`，并通过 GitHub CLI 创建或更新 `android-<short-sha>` Release。
+
+## 2026-05-16 - ReplyBox 导航栏偏移回归调试
+
+- 执行者：Codex
+- 任务分级：L2。原因：修改 Android 键盘场景下回复输入框布局代码，影响回复输入框与输入法、导航栏的相对位置。
+- 实现：
+  - ReplyBox 外层底部偏移改为仅使用 `keyboardOffset`，避免把整个输入框抬高后露出页面内容。
+  - 将导航栏高度转移到 ReplyBox 底部按钮行内部，键盘弹出时 `paddingBottom` 使用 `safeAreaInsets.bottom + 10`。
+  - 确认 React Native 数字样式单位为 dp，本次使用数值 `10`，不使用 tailwind `px` 字符串。
+- 验证：
+  - `npx prettier --check components/topic/ReplyBox.tsx`：通过。
+  - `git diff --check -- components/topic/ReplyBox.tsx`：通过。
+  - `npx tsc --noEmit`：通过。
+  - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleRelease --no-daemon --stacktrace`：通过。
+  - `adb -s 44dfe0af install -r android/app/build/outputs/apk/release/app-release.apk`：安装成功。
+  - `adb -s 44dfe0af shell am start -n com.liaoliao666.v2ex/.MainActivity`：已启动。
