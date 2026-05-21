@@ -293,3 +293,36 @@
 - 计划：
   - 使用中文提交信息提交当前工作树改动。
   - 执行 `git push origin main` 推送到远程。
+
+## 2026-05-21 - App 版本提升到 1.9.1
+
+- 执行者：Codex
+- 任务分级：L2。原因：修改 Expo 发布配置，影响 App 展示版本、OTA runtime、iOS buildNumber 和 Android versionCode。
+- 关键上下文：
+  - `app.json` 是当前仓库 App 发布版本的来源；`package.json` 的 `version` 不作为发布版本。
+  - 当前已跟踪文件只有 `app.json` 和 `package.json`；本地 `android/` 生成目录包含旧版本号但未被 Git 跟踪，本次不修改生成产物。
+- 实现：
+  - `expo.version` 从 `1.9.0` 提升到 `1.9.1`。
+  - `runtimeVersion` 从 `1.9.0` 提升到 `1.9.1`。
+  - `ios.buildNumber` 从 `1.9.0.1` 提升到 `1.9.1.1`。
+  - `android.versionCode` 从 `1090001` 提升到 `1090101`。
+- 验证：
+  - `node -e "const app=require('./app.json').expo; ..."`：通过，确认版本字段为 `1.9.1`、`1.9.1`、`1.9.1.1`、`1090101`。
+  - `npx expo config --type public --json | node -e ...`：通过，Expo 解析后的公共配置同样为 `1.9.1`、`1.9.1`、`1.9.1.1`、`1090101`。
+  - `npx prettier --check app.json`：通过。
+  - `git diff --check -- app.json`：通过。
+
+## 2026-05-21 - 提交并推送 1.9.1 版本提升
+
+- 执行者：Codex
+- 任务分级：L2。原因：用户明确要求提交并推送到远程仓库。
+- 提交前检查：
+  - `git status --short --branch`：确认当前分支为 `main`，相对 `origin/main` 无 ahead/behind，待提交文件为 `app.json` 和 `.codex/operations-log.md`。
+  - `git fetch --prune`：通过，远程可访问且无分支落后。
+  - `node -e "const app=require('./app.json').expo; ..."`：确认当前版本字段为 `1.9.1`、`1.9.1`、`1.9.1.1`、`1090101`。
+  - `npx expo config --type public --json | node -e ...`：通过。
+  - `npx prettier --check app.json .codex/operations-log.md`：通过。
+  - `git diff --check -- app.json .codex/operations-log.md`：通过。
+- 计划：
+  - 使用中文提交信息提交当前版本提升。
+  - 执行 `git push origin main` 推送到远程。

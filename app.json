@@ -3,7 +3,7 @@
     "name": "V2Fun",
     "slug": "v2ex",
     "owner": "v2fun",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "scheme": "v2fun",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.liaoliao666.v2ex",
-      "buildNumber": "1.9.0.1",
+      "buildNumber": "1.9.1.1",
       "entitlements": {
         "aps-environment": "development"
       },
@@ -66,7 +66,7 @@
       }
     },
     "android": {
-      "versionCode": 1090001,
+      "versionCode": 1090101,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
@@ -86,7 +86,7 @@
         "buttonStyle": "light"
       }
     },
-    "runtimeVersion": "1.9.0",
+    "runtimeVersion": "1.9.1",
     "plugins": [
       [
         "expo-navigation-bar",
