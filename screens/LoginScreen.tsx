@@ -94,6 +94,9 @@ export default function LoginScreen() {
               placeholder="用户名或电子邮件地址"
               keyboardType="email-address"
               autoComplete="username"
+              textContentType="username"
+              importantForAutofill="yes"
+              autoCorrect={false}
             />
           )}
         />
@@ -111,6 +114,9 @@ export default function LoginScreen() {
               secureTextEntry
               placeholder="请输入密码"
               autoComplete="current-password"
+              textContentType="password"
+              importantForAutofill="yes"
+              autoCorrect={false}
             />
           )}
         />
@@ -149,6 +155,10 @@ export default function LoginScreen() {
                 value={value?.toString()}
                 placeholder="请输入上图中的验证码，点击可以更换图片"
                 keyboardType="email-address"
+                autoComplete="off"
+                textContentType="none"
+                importantForAutofill="no"
+                autoCorrect={false}
               />
             </View>
           )}
@@ -322,6 +332,10 @@ function TwoStepSignin({ once }: { once: string }) {
             value={value?.toString()}
             placeholder="请输入验证码"
             keyboardType="email-address"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            importantForAutofill="yes"
+            autoCorrect={false}
           />
         )}
       />

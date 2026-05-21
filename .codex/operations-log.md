@@ -243,3 +243,53 @@
   - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleRelease --no-daemon --stacktrace`：通过，生成 `android/app/build/outputs/apk/release/app-release.apk`。
   - `aapt dump badging android/app/build/outputs/apk/release/app-release.apk`：确认 APK 为 `versionCode='1090001'`、`versionName='1.9.0'`。
   - `unzip -l android/app/build/outputs/apk/release/app-release.apk | ...`：确认 APK JNI ABI 仅包含 `arm64-v8a`、`armeabi-v7a`；未发现 `lib/x86/` 或 `lib/x86_64/`。
+
+## 2026-05-20 - 登录输入框密码管理软件支持调查
+
+- 执行者：Codex
+- 任务分级：L3，只读调查。原因：涉及登录主流程与账号/密码凭据填充行为，结论会影响后续实现方向。
+- 关键上下文：
+  - `screens/LoginScreen.tsx` 的原生登录表单使用 `StyledTextInput`，用户名输入框设置 `autoComplete="username"`，密码输入框设置 `secureTextEntry` 和 `autoComplete="current-password"`。
+  - `components/StyledTextInput.tsx` 将 `...props` 透传给 React Native `TextInput`，没有吞掉 autocomplete/autofill 相关属性。
+  - React Native 0.81.5 会把 `autoComplete="current-password"` 映射为 Android `password` hint 和 iOS `textContentType="password"`，把 `autoComplete="username"` 映射为平台 username hint。
+  - `app.json` 只配置了 iOS push entitlement，没有配置 `com.apple.developer.associated-domains` / `webcredentials`；Android 侧也没有看到 Digital Asset Links / `asset_statements` 相关配置。
+  - 当前原生登录表单通过解析 V2EX `/signin` 的动态字段名后自行 POST 登录；这不是系统浏览器表单，密码管理器无法直接利用网页 DOM 的 `autocomplete`/`name`/`type` 信息。
+- 判断：
+  - 输入框已具备基础原生 autofill hint，因此问题不是“提示属性完全缺失”。
+  - 对网站凭据自动匹配较弱的主要原因是 App 与 `www.v2ex.com` 缺少平台级可信关联；iOS 需要 Associated Domains / webcredentials 和站点的 apple-app-site-association，Android Credential Manager/Google Password Manager 场景需要 Digital Asset Links。
+  - 可提升兼容性的代码补强是显式增加 `textContentType="username"`、`textContentType="password"`、Android `importantForAutofill="yes"`，并把密码框的 `autoComplete` 可选改为 Android 原生值 `password` 或保留 `current-password` 由 RN 映射。
+- 验证：
+  - `rg` 检索登录输入框、`StyledTextInput`、RN TextInput 源码、`app.json` 平台关联配置。
+  - 未修改业务代码，未执行构建。
+
+## 2026-05-20 - 登录输入框密码管理软件支持修复
+
+- 执行者：Codex
+- 任务分级：L3。原因：修改 `screens/LoginScreen.tsx` 登录主流程文件，但变更限定为原生输入框 autofill 语义属性，不改变登录请求、Cookie、验证码或 2FA 状态流。
+- 实现：
+  - 用户名输入框新增 `textContentType="username"`、`importantForAutofill="yes"`、`autoCorrect={false}`。
+  - 密码输入框保留 `secureTextEntry` 和 `autoComplete="current-password"`，新增 `textContentType="password"`、`importantForAutofill="yes"`、`autoCorrect={false}`。
+  - 图形验证码输入框新增 `autoComplete="off"`、`textContentType="none"`、`importantForAutofill="no"`，避免被凭据填充启发式识别为登录字段。
+  - 2FA 输入框新增 `autoComplete="one-time-code"`、`textContentType="oneTimeCode"`、`importantForAutofill="yes"`。
+- 边界：
+  - 本次修复提升原生输入框可识别性，但不新增 App 内密码保存。
+  - 完整网站凭据匹配仍需要 iOS Associated Domains / webcredentials 与 Android Digital Asset Links，由 App 和 `www.v2ex.com` 站点共同配置。
+- 验证：
+  - `npx prettier --check screens/LoginScreen.tsx .codex/structured-request.json .codex/context-scan.json .codex/operations-log.md`：通过。
+  - `npx tsc --noEmit`：通过。
+  - `git diff --check -- screens/LoginScreen.tsx .codex/structured-request.json .codex/context-scan.json .codex/operations-log.md`：通过。
+  - npm 输出项目现有 `auto-install-peers` 配置警告，不影响验证结果。
+
+## 2026-05-21 - 中文提交和推送
+
+- 执行者：Codex
+- 任务分级：L2。原因：用户明确要求提交并推送到远程仓库，涉及远程发布但不新增业务逻辑修改。
+- 提交前检查：
+  - `git status --short --branch`：确认当前分支为 `main`，相对 `origin/main` 无 ahead/behind，仅有登录输入框修复和 `.codex` 留痕文件改动。
+  - `git fetch --prune`：通过，远程可访问并同步了新增 tag。
+  - `npx tsc --noEmit`：通过。
+  - `git diff --check`：通过。
+  - `npx prettier --check screens/LoginScreen.tsx .codex/structured-request.json .codex/context-scan.json .codex/operations-log.md .codex/review-report.md .codex/testing.md`：通过。
+- 计划：
+  - 使用中文提交信息提交当前工作树改动。
+  - 执行 `git push origin main` 推送到远程。

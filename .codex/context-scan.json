@@ -1,45 +1,42 @@
 {
-  "date": "2026-05-16",
+  "date": "2026-05-20",
   "executor": "Codex",
-  "summary": "Architecture context scan for local topic title keyword and node blocking.",
+  "summary": "Context scan for password manager support on the native login form.",
   "findings": [
     {
-      "area": "Topic model",
-      "evidence": "servicies/types.ts defines Topic with id, title, member, node and reply_count. Topic.node?.name is available for node matching."
+      "area": "Login form",
+      "evidence": "screens/LoginScreen.tsx renders username, password, captcha, and 2FA fields with StyledTextInput inside react-hook-form FormControl components."
     },
     {
-      "area": "All node data",
-      "evidence": "servicies/node.ts defines k.node.all, fetching /api/nodes/all.json as Promise<Node[]>."
+      "area": "Credential fields",
+      "evidence": "Before the fix, username had autoComplete=\"username\" and password had secureTextEntry plus autoComplete=\"current-password\". No explicit textContentType or importantForAutofill was set."
     },
     {
-      "area": "Node search",
-      "evidence": "screens/SearchNodeScreen.tsx filters k.node.all by title, title_alternative, name and aliases. It is currently single-select through onPressNodeItem."
+      "area": "Input wrapper",
+      "evidence": "components/StyledTextInput.tsx forwards ...props to React Native TextInput, so autofill-related props are not swallowed by the wrapper."
     },
     {
-      "area": "Existing node picker caller",
-      "evidence": "screens/SortTabsScreen.tsx navigates to SearchNode and adds a selected node as a home tab."
+      "area": "React Native mapping",
+      "evidence": "React Native 0.81.5 maps current-password to Android password autofill hints and iOS textContentType=password, and maps username to platform username hints."
     },
     {
-      "area": "Settings",
-      "evidence": "screens/SettingScreen.tsx uses ListItem entries for settings navigation and already places Theme Settings and Black List near the desired location."
+      "area": "Authentication flow",
+      "evidence": "servicies/auth.ts fetches /signin, parses V2EX dynamic username/password/captcha field names, then posts form-urlencoded data. The native form is not a browser DOM form."
     },
     {
-      "area": "Topic lists",
-      "evidence": "HomeScreen, NodeTopicsScreen, MyTopicsScreen, MyFollowingScreen, MemberDetailScreen, HotestTopicsScreen and SearchScreen render Topic-like lists."
-    },
-    {
-      "area": "Persistence",
-      "evidence": "jotai/utils/atomWithAsyncStorage.ts wraps AsyncStorage with jotai atomWithStorage and is used by existing preference atoms."
-    },
-    {
-      "area": "Bottom sheet dependencies",
-      "evidence": "package.json has no dedicated bottom sheet library. A small local React Native Modal-based sheet avoids adding a dependency."
+      "area": "Platform association",
+      "evidence": "app.json has no Associated Domains webcredentials entitlement and no Android Digital Asset Links or asset_statements configuration in the repository."
     }
   ],
   "risks": [
-    "Route params already carry callbacks in SearchNode; keep compatibility and avoid widening non-serializable usage beyond existing pattern.",
-    "FlatList ListHeaderComponent varies by page; blocked notice must compose with existing headers.",
-    "Search results are Topic-like rather than direct Topic instances and need mapping before filtering.",
-    "Browser Web support depends on the existing local Expo Web dev setup."
-  ]
+    "Native TextInput hints improve detection but do not guarantee that every third-party password manager will offer saved website credentials.",
+    "Full matching to www.v2ex.com credentials requires platform-level app-site association outside this local code-only change.",
+    "No mobile device autofill run was performed in this turn; validation is static."
+  ],
+  "sufficiency": {
+    "interface_contract_clear": true,
+    "technical_choice_understood": true,
+    "main_risks_identified": true,
+    "validation_path_known": true
+  }
 }
